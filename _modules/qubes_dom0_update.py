@@ -1054,16 +1054,18 @@ def refresh_db(**kwargs):
         1: False,
     }
 
-    repo_arg = _get_repo_options(**kwargs)
-    exclude_arg = _get_excludes_option(**kwargs)
-    branch_arg = _get_branch_option(**kwargs)
+    # QUBES-DOM0
+    #repo_arg = _get_repo_options(**kwargs)
+    #exclude_arg = _get_excludes_option(**kwargs)
+    #branch_arg = _get_branch_option(**kwargs)
 
     clean_cmd = [_yum(), '--quiet', 'clean', 'expire-cache']
     update_cmd = [_yum(), '--quiet', 'check-update']
-    for args in (repo_arg, exclude_arg, branch_arg):
-        if args:
-            clean_cmd.extend(args)
-            update_cmd.extend(args)
+    # QUBES-DOM0
+    #for args in (repo_arg, exclude_arg, branch_arg):
+    #    if args:
+    #        clean_cmd.extend(args)
+    #        update_cmd.extend(args)
 
     __salt__['cmd.run'](clean_cmd, python_shell=False)
     result = __salt__['cmd.retcode'](update_cmd,
