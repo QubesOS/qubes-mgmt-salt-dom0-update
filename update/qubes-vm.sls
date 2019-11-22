@@ -48,3 +48,6 @@ update:
       - cmd: dsa-4371-update
 {% endif %}
 
+notify-updates:
+  cmd.run:
+    - name: /usr/lib/qubes/upgrades-status-notify
