@@ -441,16 +441,23 @@ def latest_version(*names, **kwargs):
     exclude_arg = _get_excludes_option(**kwargs)
 
     # Refresh before looking for the latest version available
-    if refresh:
-        refresh_db(**kwargs)
+    # QUBES-DOM0 replaced with --clean below
+    #if refresh:
+    #    refresh_db(**kwargs)
 
     cur_pkgs = list_pkgs(versions_as_list=True)
 
     # Get available versions for specified package(s)
-    cmd = [_yum(), '--quiet']
+    # QUBES-DOM0 use qubes-dom0-update
+    #cmd = [_yum(), '--quiet']
+    cmd = ['qubes-dom0-update', '--quiet']
     cmd.extend(repo_arg)
     cmd.extend(exclude_arg)
-    cmd.extend(['list', 'available'])
+    # QUBES-DOM0 use qubes-dom0-update
+    #cmd.extend(['list', 'available'])
+    if refresh:
+        cmd.extend(['--clean'])
+    cmd.extend(['--action=list', 'available'])
     cmd.extend(names)
     out = __salt__['cmd.run_all'](cmd,
                                   output_loglevel='trace',
@@ -912,32 +919,20 @@ def list_upgrades(refresh=True, **kwargs):
     repo_arg = _get_repo_options(**kwargs)
     exclude_arg = _get_excludes_option(**kwargs)
 
-    # QUBES-DOM0 download updates using qubes-dom0-update to populate
-    # repository metadata in dom0
-    cmd = ['qubes-dom0-update', '-y', '--downloadonly']
-    if _yum() == 'dnf':
-        cmd.extend(['--best', '--allowerasing'])
+    # QUBES-DOM0 replaced with --clean below
+    #if salt.utils.is_true(refresh):
+    #    refresh_db(check_update=False, **kwargs)
+
+    # QUBES-DOM0 use qubes-dom0-update
+    #cmd = [_yum(), '--quiet']
+    cmd = ['qubes-dom0-update', '--quiet']
     if salt.utils.is_true(refresh):
-        cmd.extend(['--refresh'])
+        cmd.extend(['--clean'])
     cmd.extend(repo_arg)
     cmd.extend(exclude_arg)
-    retcode = __salt__['cmd.retcode'](
-        cmd,
-        output_loglevel='trace',
-        python_shell=False,
-        redirect_stderr=True,
-        ignore_retcode=True,
-    )
-    if retcode not in [0, 100]:
-        raise CommandExecutionError('Failed to fetch updates')
-
-    if salt.utils.is_true(refresh):
-        refresh_db(check_update=False, **kwargs)
-
-    cmd = [_yum(), '--quiet']
-    cmd.extend(repo_arg)
-    cmd.extend(exclude_arg)
-    cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
+    # QUBES-DOM0 use qubes-dom0-update
+    #cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
+    cmd.extend(['--action=list', 'updates'])
     out = __salt__['cmd.run_all'](cmd,
                                   output_loglevel='trace',
                                   ignore_retcode=True,
