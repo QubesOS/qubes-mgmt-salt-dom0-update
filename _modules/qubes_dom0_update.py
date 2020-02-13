@@ -476,17 +476,25 @@ def latest_version(*names, **kwargs):
     options = _get_options(**kwargs)
 
     # Refresh before looking for the latest version available
-    if refresh:
-        refresh_db(**kwargs)
+    # QUBES-DOM0 replaced with --clean below
+    #if refresh:
+    #    refresh_db(**kwargs)
 
     cur_pkgs = list_pkgs(versions_as_list=True)
 
     # Get available versions for specified package(s)
     cmd = ['--quiet']
     cmd.extend(options)
-    cmd.extend(['list', 'available'])
+
+    # QUBES-DOM0 use qubes-dom0-update
+    #cmd.extend(['list', 'available'])
+    #out = _call_yum(cmd, ignore_retcode=True)
+    cmd.extend(['--action=list', 'available'])
+    if salt.utils.data.is_true(refresh):
+        cmd.extend(['--clean'])
     cmd.extend(names)
-    out = _call_yum(cmd, ignore_retcode=True)
+    out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
+
     if out['retcode'] != 0:
         if out['stderr']:
             # Check first if this is just a matter of the packages being
@@ -973,31 +981,21 @@ def list_upgrades(refresh=True, **kwargs):
     '''
     options = _get_options(**kwargs)
 
-    # QUBES-DOM0 download updates using qubes-dom0-update to populate
-    # repository metadata in dom0
-    cmd = ['qubes-dom0-update', '-y', '--downloadonly']
-    if _yum() == 'dnf':
-        cmd.extend(['--best', '--allowerasing'])
-    if salt.utils.data.is_true(refresh):
-        cmd.extend(['--refresh'])
-    cmd.extend(options)
-    retcode = __salt__['cmd.retcode'](
-        cmd,
-        output_loglevel='trace',
-        python_shell=False,
-        redirect_stderr=True,
-        ignore_retcode=True,
-    )
-    if retcode not in [0, 100]:
-        raise CommandExecutionError('Failed to fetch updates')
-
-    if salt.utils.data.is_true(refresh):
-        refresh_db(check_update=False, **kwargs)
+    # QUBES-DOM0 replaced with --clean below
+    #if salt.utils.data.is_true(refresh):
+    #    refresh_db(check_update=False, **kwargs)
 
     cmd = ['--quiet']
     cmd.extend(options)
-    cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
-    out = _call_yum(cmd, ignore_retcode=True)
+
+    # QUBES-DOM0 use qubes-dom0-update
+    #cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
+    #out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
+    cmd.extend(['--action=list', 'updates'])
+    if salt.utils.data.is_true(refresh):
+        cmd.extend(['--clean'])
+    out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
+
     if out['retcode'] != 0 and 'Error:' in out:
         return {}
 
