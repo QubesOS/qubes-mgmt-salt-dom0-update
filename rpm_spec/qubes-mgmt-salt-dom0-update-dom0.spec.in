@@ -10,7 +10,7 @@ Group:     System administration tools
 BuildArch: noarch
 Requires:  qubes-mgmt-salt
 Requires:  qubes-mgmt-salt-dom0
-
+Requires:  qubes-core-dom0-linux >= 4.1.4
 
 Source0: %{name}-%{version}.tar.gz
 
