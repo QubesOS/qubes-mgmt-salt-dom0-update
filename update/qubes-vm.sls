@@ -5,12 +5,12 @@ dsa-4371-update:
     - source: salt://update/dsa-4371-update
     - runas: root
     - stateful: True
-{% endif %}
-
-{% if grains['os'] == 'Fedora' %}
-# workaround for https://bugzilla.redhat.com/1669247
-dnf list updates --refresh >/dev/null:
-  cmd.run
+{% elif grains['os_family'] == 'RedHat' %}
+dnf-makecache:
+  cmd.script:
+    - source: salt://update/dnf-makecache
+    - runas: root
+    - stateful: True
 {% endif %}
 
 update:
@@ -20,6 +20,9 @@ update:
     - dist_upgrade: True
     - require:
       - cmd: dsa-4371-update
+{% elif grains['os_family'] == 'RedHat' %}
+    - require:
+      - cmd: dnf-makecache
 {% endif %}
 
 notify-updates:

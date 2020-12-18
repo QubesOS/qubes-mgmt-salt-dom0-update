@@ -43,6 +43,7 @@ qubesctl saltutil.sync_all refresh=true -l quiet --out quiet > /dev/null || true
 /srv/formulas/base/update-formula/update/qubes-vm.sls
 /srv/formulas/base/update-formula/update/qubes-dom0.sls
 /srv/formulas/base/update-formula/update/dsa-4371-update
+/srv/formulas/base/update-formula/update/dnf-makecache
 
 %attr(750, root, root) %dir /srv/formulas/test/update-formula
 /srv/formulas/test/update-formula/LICENSE
