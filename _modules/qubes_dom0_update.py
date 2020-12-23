@@ -164,6 +164,13 @@ def _yum():
     return __context__[contextkey]
 
 
+def _sanitize_output(output):
+    if output is None:
+        return None
+    allowed_chars = string.printable
+    return ''.join((c if c in allowed_chars else '_') for c in output)
+
+
 def _call_yum(args, qubes_dom0_update=False, **kwargs):
     '''
     Call yum/dnf.
@@ -180,8 +187,10 @@ def _call_yum(args, qubes_dom0_update=False, **kwargs):
     cmd.append('qubes-dom0-update' if qubes_dom0_update else _yum())
     cmd.extend(args)
 
-    return __salt__['cmd.run_all'](cmd, **params)
-
+    ret = __salt__['cmd.run_all'](cmd, **params)
+    ret['stdout'] = _sanitize_output(ret['stdout'])
+    ret['stderr'] = _sanitize_output(ret['stderr'])
+    return ret
 
 def _yum_pkginfo(output):
     '''
