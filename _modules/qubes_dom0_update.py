@@ -78,6 +78,12 @@ log = logging.getLogger(__name__)
 
 __HOLD_PATTERN = r'[\w+]+(?:[.-][^-]+)*'
 
+__NAME_PATTERN = r'[a-zA-Z0-9._+-]+'
+# (alphanum and dots)-(alphanum and dots)
+# the second part may include arch, but it's still the same regex
+__VERSION_PATTERN = r'[0-9a-zA-Z._+]+-[0-9a-zA-Z._+]+'
+__REPOID_PATTERN = r'[a-zA-Z0-9_:.-]+'
+
 # Define the module's virtual name
 __virtualname__ = 'pkg'
 
@@ -188,7 +194,16 @@ def _yum_pkginfo(output):
     values = salt.utils.itertools.split(_strip_headers(output))
     osarch = __grains__['osarch']
     for (key, value) in zip(keys, values):
+        # back to processing after ignoring an invalid package entry
+        if cur is None and key == 'name':
+            cur = {}
+        if cur is None:
+            continue
         if key == 'name':
+            if not re.fullmatch(__NAME_PATTERN, value):
+                # invalid value, skip this entry
+                cur = None
+                continue
             try:
                 cur['name'], cur['arch'] = value.rsplit('.', 1)
             except ValueError:
@@ -199,11 +214,22 @@ def _yum_pkginfo(output):
                                                           osarch)
         else:
             if key == 'version':
+                if not re.fullmatch(__VERSION_PATTERN, value):
+                    # invalid value, skip this entry
+                    cur = None
+                    continue
                 # Suppport packages with no 'Release' parameter
                 value = value.rstrip('-')
             elif key == 'repoid':
+                if not re.fullmatch(__REPOID_PATTERN, value):
+                    # invalid value, skip this entry
+                    cur = None
+                    continue
                 # Installed packages show a '@' at the beginning
                 value = value.lstrip('@')
+            else:
+                # unreachable
+                raise RuntimeError('unreachable code')
             cur[key] = value
             if key == 'repoid':
                 # We're done with this package, create the pkginfo namedtuple
