@@ -167,6 +167,11 @@ def _yum():
 def _sanitize_output(output):
     if output is None:
         return None
+    # drop coloring sequences added by qubes-dom0-update (if any)
+    if output.startswith('\033[0;'):
+        output = output[7:]
+    if output.endswith('\033[0m'):
+        output = output[:-4]
     allowed_chars = string.printable
     return ''.join((c if c in allowed_chars else '_') for c in output)
 
