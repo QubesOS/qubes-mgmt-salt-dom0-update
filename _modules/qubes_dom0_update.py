@@ -529,7 +529,7 @@ def latest_version(*names, **kwargs):
     # QUBES-DOM0 use qubes-dom0-update
     #cmd.extend(['list', 'available'])
     #out = _call_yum(cmd, ignore_retcode=True)
-    cmd.extend(['--action=list', 'available'])
+    cmd.extend(['--console', '--show-output', '--action=list', 'available'])
     if salt.utils.data.is_true(refresh):
         cmd.extend(['--clean'])
     cmd.extend(names)
@@ -1031,7 +1031,7 @@ def list_upgrades(refresh=True, **kwargs):
     # QUBES-DOM0 use qubes-dom0-update
     #cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
     #out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
-    cmd.extend(['--action=list', 'updates'])
+    cmd.extend(['--console', '--show-output', '--action=list', 'upgrades'])
     if salt.utils.data.is_true(refresh):
         cmd.extend(['--clean'])
     out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
