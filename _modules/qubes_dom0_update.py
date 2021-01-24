@@ -78,6 +78,12 @@ log = logging.getLogger(__name__)
 
 __HOLD_PATTERN = r'[\w+]+(?:[.-][^-]+)*'
 
+__NAME_PATTERN = r'[a-zA-Z0-9._+-]+'
+# (alphanum and dots)-(alphanum and dots)
+# the second part may include arch, but it's still the same regex
+__VERSION_PATTERN = r'[0-9a-zA-Z._+]+-[0-9a-zA-Z._+]+'
+__REPOID_PATTERN = r'[a-zA-Z0-9_:.-]+'
+
 # Define the module's virtual name
 __virtualname__ = 'pkg'
 
@@ -158,6 +164,18 @@ def _yum():
     return __context__[contextkey]
 
 
+def _sanitize_output(output):
+    if output is None:
+        return None
+    # drop coloring sequences added by qubes-dom0-update (if any)
+    if output.startswith('\033[0;'):
+        output = output[7:]
+    if output.endswith('\033[0m'):
+        output = output[:-4]
+    allowed_chars = string.printable
+    return ''.join((c if c in allowed_chars else '_') for c in output)
+
+
 def _call_yum(args, qubes_dom0_update=False, **kwargs):
     '''
     Call yum/dnf.
@@ -174,8 +192,10 @@ def _call_yum(args, qubes_dom0_update=False, **kwargs):
     cmd.append('qubes-dom0-update' if qubes_dom0_update else _yum())
     cmd.extend(args)
 
-    return __salt__['cmd.run_all'](cmd, **params)
-
+    ret = __salt__['cmd.run_all'](cmd, **params)
+    ret['stdout'] = _sanitize_output(ret['stdout'])
+    ret['stderr'] = _sanitize_output(ret['stderr'])
+    return ret
 
 def _yum_pkginfo(output):
     '''
@@ -188,7 +208,16 @@ def _yum_pkginfo(output):
     values = salt.utils.itertools.split(_strip_headers(output))
     osarch = __grains__['osarch']
     for (key, value) in zip(keys, values):
+        # back to processing after ignoring an invalid package entry
+        if cur is None and key == 'name':
+            cur = {}
+        if cur is None:
+            continue
         if key == 'name':
+            if not re.fullmatch(__NAME_PATTERN, value):
+                # invalid value, skip this entry
+                cur = None
+                continue
             try:
                 cur['name'], cur['arch'] = value.rsplit('.', 1)
             except ValueError:
@@ -199,11 +228,22 @@ def _yum_pkginfo(output):
                                                           osarch)
         else:
             if key == 'version':
+                if not re.fullmatch(__VERSION_PATTERN, value):
+                    # invalid value, skip this entry
+                    cur = None
+                    continue
                 # Suppport packages with no 'Release' parameter
                 value = value.rstrip('-')
             elif key == 'repoid':
+                if not re.fullmatch(__REPOID_PATTERN, value):
+                    # invalid value, skip this entry
+                    cur = None
+                    continue
                 # Installed packages show a '@' at the beginning
                 value = value.lstrip('@')
+            else:
+                # unreachable
+                raise RuntimeError('unreachable code')
             cur[key] = value
             if key == 'repoid':
                 # We're done with this package, create the pkginfo namedtuple
@@ -489,7 +529,7 @@ def latest_version(*names, **kwargs):
     # QUBES-DOM0 use qubes-dom0-update
     #cmd.extend(['list', 'available'])
     #out = _call_yum(cmd, ignore_retcode=True)
-    cmd.extend(['--action=list', 'available'])
+    cmd.extend(['--console', '--show-output', '--action=list', 'available'])
     if salt.utils.data.is_true(refresh):
         cmd.extend(['--clean'])
     cmd.extend(names)
@@ -991,7 +1031,7 @@ def list_upgrades(refresh=True, **kwargs):
     # QUBES-DOM0 use qubes-dom0-update
     #cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
     #out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
-    cmd.extend(['--action=list', 'updates'])
+    cmd.extend(['--console', '--show-output', '--action=list', 'upgrades'])
     if salt.utils.data.is_true(refresh):
         cmd.extend(['--clean'])
     out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
