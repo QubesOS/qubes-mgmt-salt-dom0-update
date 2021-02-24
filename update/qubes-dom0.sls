@@ -11,5 +11,13 @@
     - repl: qubesosfasa4zl44o4tws22di6kepyzfeqv3tg4e3ztknltfxqrymdad
 
 update:
+  cmd.run:
+    - name: |
+        if qubes-dom0-update --quiet --assumeyes --clean --action=clean expire-cache >/dev/null 2>&1; then
+            echo "result=True comment='Cache cleaned'"
+        else
+            echo "result=False comment='Could not clean cache'"
+        fi
+    - stateful: True
   pkg.uptodate:
-    - refresh: True
+    - refresh: False
