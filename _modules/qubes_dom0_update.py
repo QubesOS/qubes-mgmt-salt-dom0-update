@@ -81,7 +81,7 @@ __HOLD_PATTERN = r'[\w+]+(?:[.-][^-]+)*'
 __NAME_PATTERN = r'[a-zA-Z0-9._+-]+'
 # (alphanum and dots)-(alphanum and dots)
 # the second part may include arch, but it's still the same regex
-__VERSION_PATTERN = r'[0-9a-zA-Z._+]+-[0-9a-zA-Z._+]+'
+__VERSION_PATTERN = r'(?:[0-9]+:)?[0-9a-zA-Z._+]+-[0-9a-zA-Z._+]+'
 __REPOID_PATTERN = r'[a-zA-Z0-9_:.-]+'
 
 # Define the module's virtual name
