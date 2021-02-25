@@ -509,7 +509,7 @@ def latest_version(*names, **kwargs):
         salt '*' pkg.latest_version <package name> disableexcludes=main
         salt '*' pkg.latest_version <package1> <package2> <package3> ...
     '''
-    refresh = salt.utils.data.is_true(kwargs.pop('refresh', True))
+    refresh = salt.utils.pkg.check_refresh(__opts__, kwargs.pop('refresh', True))
     if len(names) == 0:
         return ''
 
@@ -1032,8 +1032,10 @@ def list_upgrades(refresh=True, **kwargs):
     #cmd.extend(['list', 'upgrades' if _yum() == 'dnf' else 'updates'])
     #out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
     cmd.extend(['--console', '--show-output', '--action=list', 'upgrades'])
-    if salt.utils.data.is_true(refresh):
-        cmd.extend(['--clean'])
+    if salt.utils.pkg.check_refresh(__opts__, refresh):
+        # Remove rtag file to keep multiple refreshes from happening in pkg states
+        salt.utils.pkg.clear_rtag(__opts__)
+        cmd.append('--clean')
     out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
 
     if out['retcode'] != 0 and 'Error:' in out:
@@ -1165,19 +1167,20 @@ def refresh_db(**kwargs):
     check_update_ = kwargs.pop('check_update', True)
     options = _get_options(**kwargs)
 
-    clean_cmd = ['--quiet', '--assumeyes', 'clean', 'expire-cache']
+    # QUBES-dom0 use --action for qubes_dom0_update
+    clean_cmd = ['--quiet', '--assumeyes', '--clean', '--action=clean', 'expire-cache']
     clean_cmd.extend(options)
-    _call_yum(clean_cmd, ignore_retcode=True)
+    _call_yum(clean_cmd, qubes_dom0_update=True, ignore_retcode=True)
 
     if check_update_:
-        update_cmd = ['--quiet', '--assumeyes', 'check-update']
+        update_cmd = ['--quiet', '--assumeyes', '--action=check-update']
         if (__grains__.get('os_family') == 'RedHat'
            and __grains__.get('osmajorrelease') == 7):
             # This feature is disabled because it is not used by Salt and adds a
             # lot of extra time to the command with large repos like EPEL
             update_cmd.append('--setopt=autocheck_running_kernel=false')
         update_cmd.extend(options)
-        ret = retcodes.get(_call_yum(update_cmd, ignore_retcode=True)['retcode'], False)
+        ret = retcodes.get(_call_yum(update_cmd, qubes_dom0_update=True, ignore_retcode=True)['retcode'], False)
 
     return ret
 
@@ -1418,7 +1421,7 @@ def install(name=None,
     '''
     options = _get_options(**kwargs)
 
-    if salt.utils.data.is_true(refresh):
+    if salt.utils.pkg.check_refresh(__opts__, refresh):
         refresh_db(**kwargs)
     reinstall = salt.utils.data.is_true(reinstall)
 
@@ -1659,9 +1662,10 @@ def install(name=None,
         if downloadonly:
             cmd.append('--downloadonly')
         # QUBES-DOM0 self.refresh_db isn't enough
-        if salt.utils.data.is_true(refresh):
+        if salt.utils.pkg.check_refresh(__opts__, refresh):
+            # Remove rtag file to keep multiple refreshes from happening in pkg states
+            salt.utils.pkg.clear_rtag(__opts__)
             cmd.append('--clean')
-
 
     try:
         holds = list_holds(full=False)
@@ -1970,7 +1974,9 @@ def upgrade(name=None,
     cmd = ['--quiet', '-y']
     cmd.extend(options)
     # QUBES-DOM0 add --clean
-    if salt.utils.data.is_true(refresh):
+    if salt.utils.pkg.check_refresh(__opts__, refresh):
+        # Remove rtag file to keep multiple refreshes from happening in pkg states
+        salt.utils.pkg.clear_rtag(__opts__)
         cmd.append('--clean')
     if skip_verify:
         cmd.append('--nogpgcheck')
