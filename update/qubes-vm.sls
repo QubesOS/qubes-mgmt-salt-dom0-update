@@ -12,6 +12,11 @@ dnf-makecache:
     - source: salt://update/dnf-makecache
     - runas: root
     - stateful: True
+
+Disable deltarpm:
+  file.append:
+    - name: /etc/dnf/dnf.conf
+    - text: deltarpm=False
 {% endif %}
 
 update:
@@ -23,6 +28,7 @@ update:
     - require:
       - cmd: dnf-makecache
       - file: /usr/lib/rpm/macros.d/macros.qubes
+      - file: 'Disable deltarpm'
 {% endif %}
 
 notify-updates:
