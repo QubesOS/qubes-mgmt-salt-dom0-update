@@ -19,6 +19,14 @@ dnf-makecache:
     - stateful: True
 {% endif %}
 
+{% if grains['oscodename'] == 'buster' %}
+# https://bugs.debian.org/931566
+# Apply the workaround manually, to be able to pull in the fixed apt version
+apt-get update --allow-releaseinfo-change:
+  cmd.run:
+   - order: 1
+{% endif %}
+
 update:
   pkg.uptodate:
     - refresh: True
