@@ -1,9 +1,14 @@
 {% if grains['os_family'] == 'RedHat' %}
+dnf-and-rpm:
+  pkg.installed:
+    - pkgs:
+      - dnf: '>= 4.7.0'
+      - rpm: '>= 4.14.2'
+
 /usr/lib/rpm/macros.d/macros.qubes:
-  file.managed:
-    - contents: |
-        # CVE-2021-20271 mitigation
-        %_pkgverify_level all
+  file.absent:
+    - require:
+      - pkg: dnf-and-rpm
 {% endif %}
 
 {% if grains['os_family'] == 'RedHat' %}
