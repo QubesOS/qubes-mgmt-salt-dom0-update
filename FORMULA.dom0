@@ -2,7 +2,7 @@
 
 package-name:       qubes-mgmt-salt-dom0-update
 saltenv:            base
-version:            4.0.11
+version:            4.0.12
 release:            1
 name:               update-formula
 top_level_dir:      update
