@@ -25,6 +25,7 @@ import logging
 import os
 import re
 import string
+from salt.exceptions import CommandExecutionError
 
 # pylint: disable=import-error,redefined-builtin
 # Import 3rd-party libs
@@ -172,6 +173,7 @@ def _sanitize_output(output):
         output = output[7:]
     if output.endswith('\033[0m'):
         output = output[:-4]
+    output = output[:3000] # arbitrary limit
     allowed_chars = string.printable
     return ''.join((c if c in allowed_chars else '_') for c in output)
 
@@ -536,17 +538,15 @@ def latest_version(*names, **kwargs):
     out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
 
     if out['retcode'] != 0:
-        if out['stderr']:
-            # Check first if this is just a matter of the packages being
-            # up-to-date.
-            if not all([x in cur_pkgs for x in names]):
-                log.error(
-                    'Problem encountered getting latest version for the '
-                    'following package(s): %s. Stderr follows: \n%s',
-                    ', '.join(names),
-                    out['stderr']
-                )
-        updates = []
+        # Check first if this is just a matter of the packages being
+        # up-to-date.
+        if not all([x in cur_pkgs for x in names]):
+            raise CommandExecutionError(
+                'Problem encountered getting latest version for the '
+                'following package(s): %s. Stderr follows: \n%s',
+                ', '.join(names),
+                out['stderr']
+            )
     else:
         # Sort by version number (highest to lowest) for loop below
         updates = sorted(
@@ -954,6 +954,10 @@ def list_repo_pkgs(*args, **kwargs):
             out = _call_yum(cmd_prefix + [pkg_src], ignore_retcode=True)
             if out['retcode'] == 0:
                 _parse_output(out['stdout'], strict=True)
+            else:
+                raise CommandExecutionError(
+                    'Command failed with status code ' + str(int(out['retcode'])),
+                    {'retcode': out['retcode'], 'cmd': cmd_prefix + [pkg_src]})
     # The --showduplicates option is added in 3.2.13, but the
     # repository-packages subcommand is only in 3.4.3 and newer
     elif yum_version and yum_version < _LooseVersion('3.4.3'):
@@ -966,6 +970,10 @@ def list_repo_pkgs(*args, **kwargs):
             out = _call_yum(cmd_prefix + [pkg_src], ignore_retcode=True)
             if out['retcode'] == 0:
                 _parse_output(out['stdout'], strict=True)
+            else:
+                raise CommandExecutionError(
+                    'Command failed with status code ' + str(int(out['retcode'])),
+                    {'retcode': out['retcode'], 'cmd': cmd_prefix + [pkg_src]})
     else:
         for repo in repos:
             cmd = ['--quiet', '--showduplicates', 'repository-packages', repo, 'list']
@@ -974,8 +982,10 @@ def list_repo_pkgs(*args, **kwargs):
             # Can't concatenate because args is a tuple, using list.extend()
             cmd.extend(args)
             out = _call_yum(cmd, ignore_retcode=True)
-            if out['retcode'] != 0 and 'Error:' in out['stdout']:
-                continue
+            if out['retcode'] != 0:
+                raise CommandExecutionError(
+                    'Command failed with status code ' + str(int(out['retcode'])),
+                    {'retcode': out['retcode'], 'cmd': cmd})
             _parse_output(out['stdout'])
 
     if byrepo:
@@ -1038,8 +1048,15 @@ def list_upgrades(refresh=True, **kwargs):
         cmd.append('--clean')
     out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
 
-    if out['retcode'] != 0 and 'Error:' in out:
-        return {}
+    if out['retcode'] != 0:
+        raise CommandExecutionError(
+                'Command failed with status ' + str(out['retcode']),
+                {
+                    'retcode': out['retcode'],
+                    'cmd': cmd,
+                    'stdout': out['stdout'],
+                    'stderr': out['stderr'],
+                })
 
     return dict([(x.name, x.version) for x in _yum_pkginfo(out['stdout'])])
 
@@ -2221,6 +2238,7 @@ def hold(name=None, pkgs=None, sources=None, normalize=True, **kwargs):  # pylin
 
     current_locks = list_holds(full=False)
     ret = {}
+    failed = False
     for target in targets:
         if isinstance(target, dict):
             target = next(six.iterkeys(target))
@@ -2246,10 +2264,13 @@ def hold(name=None, pkgs=None, sources=None, normalize=True, **kwargs):  # pylin
                 else:
                     ret[target]['comment'] = ('Package {0} was unable to be held.'
                                               .format(target))
+                    failed = True
         else:
             ret[target].update(result=True)
             ret[target]['comment'] = ('Package {0} is already set to be held.'
                                       .format(target))
+    if failed:
+        raise CommandExecutionError('Not all packages could be held', ret)
     return ret
 
 
