@@ -13,13 +13,9 @@
     - bufsize: file
 
 update:
-  cmd.run:
-    - name: |
-        if qubes-dom0-update --quiet --assumeyes --clean --action=clean expire-cache >/dev/null 2>&1; then
-            echo "result=True comment='Cache cleaned'"
-        else
-            echo "result=False comment='Could not clean cache'"
-        fi
+  cmd.script:
+    - source: salt://update/dnf-cleancache
+    - runas: root
     - stateful: True
   pkg.uptodate:
     - refresh: False
