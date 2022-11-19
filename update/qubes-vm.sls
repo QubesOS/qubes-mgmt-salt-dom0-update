@@ -27,9 +27,9 @@ dnf-makecache:
     - stateful: True
 
 Disable deltarpm:
-  file.append:
-    - name: /etc/dnf/dnf.conf
-    - text: deltarpm=False
+  cmd.run:
+    - name: echo deltarpm=False >> /etc/dnf/dnf.conf
+    - unless: grep -q deltarpm=False /etc/dnf/dnf.conf
 {% endif %}
 
 {% if grains['oscodename'] == 'buster' %}
@@ -49,7 +49,7 @@ update:
     - require:
       - cmd: dnf-makecache
       - file: /usr/lib/rpm/macros.d/macros.qubes
-      - file: 'Disable deltarpm'
+      - cmd: 'Disable deltarpm'
 {% endif %}
 
 notify-updates:
