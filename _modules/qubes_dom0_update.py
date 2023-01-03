@@ -538,15 +538,12 @@ def latest_version(*names, **kwargs):
     out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
 
     if out['retcode'] != 0:
-        # Check first if this is just a matter of the packages being
-        # up-to-date.
-        if not all([x in cur_pkgs for x in names]):
-            raise CommandExecutionError(
-                'Problem encountered getting latest version for the '
-                'following package(s): %s. Stderr follows: \n%s',
-                ', '.join(names),
-                out['stderr']
-            )
+        raise CommandExecutionError(
+            'Problem encountered getting latest version for the '
+            'following package(s): %s. Stderr follows: \n%s',
+            ', '.join(names),
+            out['stderr']
+        )
     else:
         # Sort by version number (highest to lowest) for loop below
         updates = sorted(
