@@ -19,6 +19,14 @@ dnf-and-rpm:
 {% endif %}
 {% endif %}
 
+# apply fix for #9025 to unbreak updates proxy
+/etc/qubes-rpc/qubes.UpdatesProxy:
+  # use file.replace instead of file.managed, to not interfere with future
+  # possible changes
+  file.replace:
+  - pattern: "STDIO TCP:localhost:8082"
+  - repl: "STDIO TCP4:127.0.0.1:8082"
+
 {% if grains['os_family'] == 'RedHat' %}
 dnf-makecache:
   cmd.script:
