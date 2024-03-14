@@ -24,6 +24,7 @@ dnf-and-rpm:
   # use file.replace instead of file.managed, to not interfere with future
   # possible changes
   file.replace:
+  - ignore_if_missing: True
   - pattern: "STDIO TCP:localhost:8082"
   - repl: "STDIO TCP4:127.0.0.1:8082"
 
