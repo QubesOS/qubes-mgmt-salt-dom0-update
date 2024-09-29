@@ -6,6 +6,7 @@
         # CVE-2021-20271 mitigation
         %_pkgverify_level all
 {% else %}
+{% if grains['os'] == 'Fedora' and grains['osmajorrelease'] < 41 %}
 dnf-and-rpm:
   pkg.installed:
     - pkgs:
@@ -16,6 +17,10 @@ dnf-and-rpm:
   file.absent:
     - require:
       - pkg: dnf-and-rpm
+{% else %}
+/usr/lib/rpm/macros.d/macros.qubes:
+  file.absent: []
+{% endif %}
 {% endif %}
 {% endif %}
 
