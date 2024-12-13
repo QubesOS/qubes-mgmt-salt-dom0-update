@@ -1089,7 +1089,7 @@ def list_upgrades(refresh=True, **kwargs):
     # QUBES-DOM0 use qubes-dom0-update
     #cmd.extend(["list", "upgrades" if _yum() == "dnf" else "updates"])
     #out = _call_yum(cmd, qubes_dom0_update=True, ignore_retcode=True)
-    cmd.extend(["--console", "--show-output", "--action=list", "upgrades"])
+    cmd.extend(["--console", "--show-output", "--action=list", "--upgrades"])
     if salt.utils.pkg.check_refresh(__opts__, refresh):
         # Remove rtag file to keep multiple refreshes from happening in pkg states
         salt.utils.pkg.clear_rtag(__opts__)
