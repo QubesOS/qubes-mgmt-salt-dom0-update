@@ -189,6 +189,10 @@ def _sanitize_output(output):
     # drop coloring sequences added by qubes-dom0-update (if any)
     if output.startswith("\033[0;"):
         output = output[7:]
+    if output.startswith("\033[1m"):
+        output = output[4:]
+    if output.startswith("\033[34m"):
+        output = output[5:]
     if output.endswith("\033[0m"):
         output = output[:-4]
     output = output[:3000] # arbitrary limit
