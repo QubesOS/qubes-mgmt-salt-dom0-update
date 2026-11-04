@@ -33,7 +33,14 @@ dnf-and-rpm:
   - pattern: "STDIO TCP:localhost:8082"
   - repl: "STDIO TCP4:127.0.0.1:8082"
 
-{% if grains['os_family'] == 'RedHat' %}
+{% if grains['os'] == 'Debian' %}
+# mitigation for DSA-6607-1 (CVE-2026-109518)
+dsa-6607-update:
+  cmd.script:
+    - source: salt://update/dsa-6607-update
+    - runas: root
+    - stateful: True
+{% elif grains['os_family'] == 'RedHat' %}
 dnf-makecache:
   cmd.script:
     - source: salt://update/dnf-makecache
@@ -59,6 +66,8 @@ update:
     - refresh: True
 {% if grains['os'] == 'Debian' %}
     - dist_upgrade: True
+    - require:
+      - cmd: dsa-6607-update
 {% elif grains['os_family'] == 'RedHat' %}
     - require:
       - cmd: dnf-makecache
